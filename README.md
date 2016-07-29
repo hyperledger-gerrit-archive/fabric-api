@@ -4,7 +4,7 @@ This project is a Hyperledger project in _Incubation_. It was proposed to the co
 ## Fabric-API
 Fabric-API comes with a client [API](docs/api.md).
 
-While this peoject represents the fruit of many man-years of development, it is still a work in progress and we are in the process of replacing several components, adding others, and integrating with other open source projects. This particularly relates to security, scalability, and privacy.
+While this project represents the fruit of many man-years of development, it is still a work in progress and we are in the process of replacing several components, adding others, and integrating with other open source projects. This particularly relates to security, scalability, and privacy.
 
 Fabric-API was built with the requirements of enterprise architecture in mind by a team that has worked in financial institutions for decades. It has a highly modular design at both the code and runtime levels to allow for integrations with legacy systems.
 
