@@ -41,7 +41,7 @@ public class GRPCClientTest {
     @Before
     public void setUp() {
         client = new DummyFabric();
-//        client = new GRPCClient("localhost", 30303, 31315);
+//        client = new GRPCClient("localhost", 7051, 7053);
     }
 
     @Test
@@ -61,7 +61,6 @@ public class GRPCClientTest {
     @Test
     public void sendTransaction() throws HLAPIException, InterruptedException {
         Transaction tx = TransactionTest.randomTx();
-
         int originalHeight = client.getChainHeight();
         client.sendTransaction(tx);
 

@@ -41,15 +41,13 @@ import protos.OpenchainGrpc;
 import protos.OpenchainGrpc.OpenchainBlockingStub;
 
 import java.io.IOException;
-import java.util.Base64;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 public class GRPCClient implements HLAPI {
     private static final Logger log = LoggerFactory.getLogger(GRPCClient.class);
-
-    final String chaincodeName = "noop";
-
 
     private DevopsBlockingStub dbs;
     private OpenchainBlockingStub obs;
@@ -66,38 +64,34 @@ public class GRPCClient implements HLAPI {
         observer.connect();
     }
 
-    private void invoke(String chaincodeName, byte[] transaction) {
-        invoke(chaincodeName, "execute", transaction);
-    }
-
-    private void invoke(String chaincodeName, String functionName, byte[] transaction) {
-        String encodedTransaction = Base64.getEncoder().encodeToString(transaction);
-
+    private void invoke(byte[] transaction) {
         ChaincodeID.Builder chaincodeId = ChaincodeID.newBuilder();
-        chaincodeId.setName(chaincodeName);
+        chaincodeId.setName(Transaction.chaincodeName);
 
         ChaincodeInput.Builder chaincodeInput = ChaincodeInput.newBuilder();
-        chaincodeInput.setFunction(functionName);
-        chaincodeInput.addArgs(encodedTransaction);
+        chaincodeInput.addArgs(ByteString.copyFromUtf8(Transaction.txCreatorChaincodeFunction));
+        chaincodeInput.addArgs(ByteString.copyFrom(transaction));
 
         ChaincodeSpec.Builder chaincodeSpec = ChaincodeSpec.newBuilder();
         chaincodeSpec.setChaincodeID(chaincodeId);
         chaincodeSpec.setCtorMsg(chaincodeInput);
 
         ChaincodeInvocationSpec.Builder chaincodeInvocationSpec = ChaincodeInvocationSpec.newBuilder();
-        chaincodeInvocationSpec.setChaincodeSpec(chaincodeSpec).setIdGenerationAlg("sha256base64");
+        chaincodeInvocationSpec.setChaincodeSpec(chaincodeSpec).setIdGenerationAlg("sha256");
 
         dbs.invoke(chaincodeInvocationSpec.build());
     }
 
     private ByteString query(String functionName, Iterable<String> args) {
         Chaincode.ChaincodeID chainCodeId = Chaincode.ChaincodeID.newBuilder()
-                .setName(chaincodeName)
+                .setName(Transaction.chaincodeName)
                 .build();
 
         Chaincode.ChaincodeInput chainCodeInput = Chaincode.ChaincodeInput.newBuilder()
-                .setFunction(functionName)
-                .addAllArgs(args)
+                .addArgs(ByteString.copyFromUtf8(functionName))
+                .addAllArgs(StreamSupport.stream(args.spliterator(), false)
+                                         .map((String arg) -> ByteString.copyFromUtf8(arg))
+                                         .collect(Collectors.toList()))
                 .build();
 
         Chaincode.ChaincodeSpec chaincodeSpec = Chaincode.ChaincodeSpec.newBuilder()
@@ -159,7 +153,7 @@ public class GRPCClient implements HLAPI {
     @Override
     public HLAPITransaction getTransaction(TID hash) throws HLAPIException {
         try {
-            ByteString result = query("getTran", Collections.singletonList(hash.toUuidString()));
+            ByteString result = query("getTran", Collections.singletonList(hash.toString()));
             byte[] resultStr = result.toByteArray();
             if (resultStr.length == 0) return null;
             Transaction t = Transaction.fromByteArray(resultStr);
@@ -180,7 +174,7 @@ public class GRPCClient implements HLAPI {
     public void sendTransaction(Transaction transaction) throws HLAPIException {
         byte[] t = transaction.toByteArray();
         log.debug("Sending transaction of size {}", t.length);
-        invoke(chaincodeName, t);
+        invoke(t);
     }
 
     @Override
