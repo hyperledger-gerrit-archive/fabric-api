@@ -40,6 +40,7 @@ public class GRPCClientTest {
 
     @Before
     public void setUp() {
+
         client = new DummyFabric();
 //        client = new GRPCClient("localhost", 7051, 7053);
     }
