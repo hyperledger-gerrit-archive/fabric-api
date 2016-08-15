@@ -137,7 +137,7 @@ public class GRPCObserver {
         ByteString invocationSpecBytes = tx.getPayload();
         try {
             ChaincodeInvocationSpec invocationSpec = ChaincodeInvocationSpec.parseFrom(invocationSpecBytes);
-            String transactionString = invocationSpec.getChaincodeSpec().getCtorMsg().getArgs(0);
+            String transactionString = invocationSpec.getChaincodeSpec().getCtorMsg().getArgs(1).toStringUtf8();
             byte[] transactionBytes = DatatypeConverter.parseBase64Binary(transactionString);
             return Transaction.fromByteArray(transactionBytes);
         } catch (IOException e) {

@@ -44,6 +44,8 @@ import java.io.IOException;
 import java.util.Base64;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 public class GRPCClient implements HLAPI {
     private static final Logger log = LoggerFactory.getLogger(GRPCClient.class);
@@ -71,14 +73,12 @@ public class GRPCClient implements HLAPI {
     }
 
     private void invoke(String chaincodeName, String functionName, byte[] transaction) {
-        String encodedTransaction = Base64.getEncoder().encodeToString(transaction);
-
         ChaincodeID.Builder chaincodeId = ChaincodeID.newBuilder();
         chaincodeId.setName(chaincodeName);
 
         ChaincodeInput.Builder chaincodeInput = ChaincodeInput.newBuilder();
-        chaincodeInput.setFunction(functionName);
-        chaincodeInput.addArgs(encodedTransaction);
+        chaincodeInput.addArgs(ByteString.copyFromUtf8(functionName));
+        chaincodeInput.addArgs(ByteString.copyFrom(transaction));
 
         ChaincodeSpec.Builder chaincodeSpec = ChaincodeSpec.newBuilder();
         chaincodeSpec.setChaincodeID(chaincodeId);
@@ -96,8 +96,10 @@ public class GRPCClient implements HLAPI {
                 .build();
 
         Chaincode.ChaincodeInput chainCodeInput = Chaincode.ChaincodeInput.newBuilder()
-                .setFunction(functionName)
-                .addAllArgs(args)
+                .addArgs(ByteString.copyFromUtf8(functionName))
+                .addAllArgs(StreamSupport.stream(args.spliterator(), false)
+                                         .map((String arg) -> ByteString.copyFromUtf8(arg))
+                                         .collect(Collectors.toList()))
                 .build();
 
         Chaincode.ChaincodeSpec chaincodeSpec = Chaincode.ChaincodeSpec.newBuilder()
