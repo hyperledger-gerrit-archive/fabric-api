@@ -28,16 +28,13 @@ import org.hyperledger.transaction.TID;
 import org.hyperledger.transaction.Transaction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import protos.*;
 import protos.Api.BlockCount;
-import protos.Chaincode;
 import protos.Chaincode.ChaincodeID;
 import protos.Chaincode.ChaincodeInput;
 import protos.Chaincode.ChaincodeInvocationSpec;
 import protos.Chaincode.ChaincodeSpec;
-import protos.DevopsGrpc;
 import protos.DevopsGrpc.DevopsBlockingStub;
-import protos.Fabric;
-import protos.OpenchainGrpc;
 import protos.OpenchainGrpc.OpenchainBlockingStub;
 
 import java.io.IOException;
@@ -52,9 +49,8 @@ public class GRPCClient implements HLAPI {
 
     final String chaincodeName = "noop";
 
-
-    private DevopsBlockingStub dbs;
     private OpenchainBlockingStub obs;
+    private PeerGrpc.PeerBlockingStub pbs;
 
     private final GRPCObserver observer;
 
@@ -62,7 +58,7 @@ public class GRPCClient implements HLAPI {
         log.debug("Trying to connect to GRPC host:port={}:{}, host:observerPort={}:{}, ", host, port, observerPort);
         ManagedChannel channel = NettyChannelBuilder.forAddress(host, port).negotiationType(NegotiationType.PLAINTEXT).build();
         ManagedChannel observerChannel = NettyChannelBuilder.forAddress(host, observerPort).negotiationType(NegotiationType.PLAINTEXT).build();
-        dbs = DevopsGrpc.newBlockingStub(channel);
+        pbs = PeerGrpc.newBlockingStub(channel);
         obs = OpenchainGrpc.newBlockingStub(channel);
         observer = new GRPCObserver(observerChannel);
         observer.connect();
@@ -84,10 +80,15 @@ public class GRPCClient implements HLAPI {
         chaincodeSpec.setChaincodeID(chaincodeId);
         chaincodeSpec.setCtorMsg(chaincodeInput);
 
-        ChaincodeInvocationSpec.Builder chaincodeInvocationSpec = ChaincodeInvocationSpec.newBuilder();
-        chaincodeInvocationSpec.setChaincodeSpec(chaincodeSpec).setIdGenerationAlg("sha256base64");
+        ChaincodeInvocationSpec chaincodeInvocationSpec = ChaincodeInvocationSpec.newBuilder()
+                .setChaincodeSpec(chaincodeSpec)
+                .setIdGenerationAlg("sha256base64")
+                .build();
 
-        dbs.invoke(chaincodeInvocationSpec.build());
+        Fabric.Transaction.Builder tb = Fabric.Transaction.newBuilder();
+        tb.setType(Fabric.Transaction.Type.CHAINCODE_INVOKE);
+        tb.setPayload(chaincodeInvocationSpec.toByteString());
+        pbs.processTransaction(tb.build());
     }
 
     private ByteString query(String functionName, Iterable<String> args) {
@@ -111,8 +112,10 @@ public class GRPCClient implements HLAPI {
                 .setChaincodeSpec(chaincodeSpec)
                 .build();
 
-        Fabric.Response response = dbs.query(chaincodeInvocationSpec);
-
+        Fabric.Transaction.Builder tb = Fabric.Transaction.newBuilder();
+        tb.setType(Fabric.Transaction.Type.CHAINCODE_QUERY);
+        tb.setPayload(chaincodeInvocationSpec.toByteString());
+        Fabric.Response response = pbs.processTransaction(tb.build());
         return response.getMsg();
     }
 
