@@ -1,0 +1,7 @@
+Verified+1: Hyperledger Jobbuilder <jobbuilder@jenkins.hyperledger.org>
+Code-Review+2: Zsolt Szilágyi <zsolt@digitalasset.com>
+Submitted-by: Gabor Hosszu <gabor@digitalasset.com>
+Submitted-at: Fri, 19 Aug 2016 10:24:58 +0000
+Reviewed-on: http://gerrit.hyperledger.org/r/503
+Project: fabric-api
+Branch: refs/heads/master
